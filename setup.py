@@ -8,13 +8,26 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-install_requires=[
+install_requires = [
     "TurboGears2 >= 2.3.1",
     "tgext.pluggable>=0.7.2",
     "tw2.core",
     "tw2.forms >= 2.2.0.3",
     "sprox >= 0.9.1",
-    'itsdangerous'
+    'itsdangerous',
+]
+
+testpkgs = [
+    'WebTest >= 1.2.3',
+    'nose',
+    'coverage',
+    'ming',
+    'sqlalchemy',
+    'zope.sqlalchemy',
+    'repoze.who',
+    'tw2.forms',
+    'kajiki',
+    'tgext.mailer',
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -35,6 +48,11 @@ setup(
     keywords='turbogears2.application',
     packages=find_packages(exclude=['ez_setup']),
     install_requires=install_requires,
+    tests_requires=testpkgs,
+    extras_require={
+       # Used by CI
+       'testing': testpkgs,
+    },
     include_package_data=True,
     package_data={'resetpassword': [
         'i18n/*/LC_MESSAGES/*.mo',
