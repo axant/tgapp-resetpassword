@@ -168,6 +168,10 @@ def configure_app(using):
     else:
         raise ValueError('Unsupported backend')
 
+    # Reset the Sprox provider on every change of configuration.
+    from resetpassword import model as resetpassword_model
+    resetpassword_model.provider._provider = None
+
     app_cfg.model = app_cfg.package.model
     app_cfg.DBSession = app_cfg.package.model.DBSession
 

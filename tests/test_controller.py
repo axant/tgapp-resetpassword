@@ -1,10 +1,12 @@
-import tg
-from tgext.pluggable import app_model
-from .base import configure_app, create_app, flush_db_changes
-from resetpassword import lib, model
 import re
+from resetpassword import model
+
+from tgext.pluggable import app_model
 from tgext.mailer import get_mailer
-find_urls = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+from .base import configure_app, create_app, flush_db_changes
+
+
+URLS_RE = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
 
 class ResetpasswordControllerTests(object):
@@ -48,7 +50,11 @@ class ResetpasswordControllerTests(object):
             display_name='Test',
             password='eh'
         )
-        app_model.DBSession.add(user)
+        try:
+            app_model.DBSession.add(user)
+        except AttributeError:
+            # Ming DBSession doesn't have/require .add
+            pass
         old_password = user.password
         flush_db_changes()
 
@@ -66,17 +72,18 @@ class ResetpasswordControllerTests(object):
         assert 'Password reset request sent' in resp.text, resp.text
 
         assert len(mailer.outbox) == 1, mailer.outbox
-        url = find_urls.findall(mailer.outbox[0].body)[0]
+        url = URLS_RE.findall(mailer.outbox[0].body)[0]
         resp = self.app.get(url)
         form = resp.form
         form['password'] = 'alfa'
         form['password_confirm'] = 'alfa'
         resp = form.submit()
         assert 'Password%20changed%20successfully' in resp.headers['Set-Cookie']
-        user = app_model.DBSession.query(app_model.User).all()[0]
-        assert old_password != user.password
+        _, users = model.provider.query(app_model.User)
+        assert old_password != users[0].password
         resp = resp.follow()
         assert 'HELLO' in resp.text, resp.text
+
 
 class TestResetpasswordControllerSQLA(ResetpasswordControllerTests):
     @classmethod
@@ -84,8 +91,8 @@ class TestResetpasswordControllerSQLA(ResetpasswordControllerTests):
         cls.app_config = configure_app('sqlalchemy')
 
 
-#class TestResetpasswordControllerMing(ResetpasswordControllerTests):
-#    @classmethod
-#    def setupClass(cls):
-#        cls.app_config = configure_app('ming')
+class TestResetpasswordControllerMing(ResetpasswordControllerTests):
+    @classmethod
+    def setupClass(cls):
+        cls.app_config = configure_app('ming')
 

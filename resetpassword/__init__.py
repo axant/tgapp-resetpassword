@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """The tgapp-resetpassword package"""
 
-import tg
-from tg.configuration import milestones
-
 
 def plugme(app_config, options):
     try:  # TG2.3
