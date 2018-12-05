@@ -43,6 +43,12 @@ class ResetpasswordControllerTests(object):
 
         assert '<span id="email_address:error">Enter a value</span>' in resp.text, resp.text
 
+    def test_resetpassword_fake_url(self):
+        resp = self.app.get('/resetpassword/change_password')
+        resp = resp.follow()
+
+        assert '<div class="error">Invalid password reset request</div>' in resp.text
+
     def test_resetpassword_reset_request(self):
         user = app_model.User(
             email_address='email@email.it',
@@ -84,6 +90,71 @@ class ResetpasswordControllerTests(object):
         resp = resp.follow()
         assert 'HELLO' in resp.text, resp.text
 
+    def test_resetpassword_old_request(self):
+        user = app_model.User(
+            email_address='email@email.it',
+            user_name='test',
+            display_name='Test',
+            password='eh'
+        )
+        try:
+            app_model.DBSession.add(user)
+        except AttributeError:
+            # Ming DBSession doesn't have/require .add
+            pass
+        old_password = user.password
+        flush_db_changes()
+
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+        old_date = datetime.utcnow() - relativedelta(years=3)
+        import tg
+        secret = tg.config.get('session.secret', tg.config.get('beaker.session.secret'))
+        from itsdangerous import URLSafeSerializer
+        serializer = URLSafeSerializer(secret)
+        serialized_data = serializer.dumps(dict(request_date=old_date.strftime('%m/%d/%Y %H:%M'),
+                                                email_address='email@email.it', password_frag='eh',
+                                                redirect_to='/'))
+        new_url='http://localhost/resetpassword/change_password/?data='+serialized_data
+        resp = self.app.get(new_url)
+        form = resp.form
+        form['password'] = 'alfa'
+        form['password_confirm'] = 'alfa'
+        resp = form.submit()
+        assert 'Password%20reset%20request%20timed%20out' in resp.headers['Set-Cookie']
+
+
+    def test_resetpassword_bad_frag_password(self):
+        user = app_model.User(
+            email_address='email@email.it',
+            user_name='test',
+            display_name='Test',
+            password='eh'
+        )
+        try:
+            app_model.DBSession.add(user)
+        except AttributeError:
+            # Ming DBSession doesn't have/require .add
+            pass
+        old_password = user.password
+        flush_db_changes()
+
+        from datetime import datetime
+        import tg
+        secret = tg.config.get('session.secret', tg.config.get('beaker.session.secret'))
+        from itsdangerous import URLSafeSerializer
+        serializer = URLSafeSerializer(secret)
+        serialized_data = serializer.dumps(dict(request_date=datetime.utcnow().strftime('%m/%d/%Y %H:%M'),
+                                                email_address='email@email.it', password_frag='ops',
+                                                redirect_to='/'))
+        new_url = 'http://localhost/resetpassword/change_password/?data=' + serialized_data
+        resp = self.app.get(new_url)
+        form = resp.form
+        form['password'] = 'alfa'
+        form['password_confirm'] = 'alfa'
+        resp = form.submit()
+        assert 'Invalid%20password%20reset%20request' in resp.headers['Set-Cookie']
+
 
 class TestResetpasswordControllerSQLA(ResetpasswordControllerTests):
     @classmethod
@@ -96,3 +167,23 @@ class TestResetpasswordControllerMing(ResetpasswordControllerTests):
     def setupClass(cls):
         cls.app_config = configure_app('ming')
 
+
+class ResetpasswordControllerWithoutFormsTests(object):
+    def setup(self):
+        self.app = create_app(self.app_config, False)
+
+    def test_index(self):
+        resp = self.app.get('/')
+        assert 'HELLO' in resp.text
+
+    def test_resetpassword_form(self):
+        resp = self.app.get('/resetpassword')
+
+        assert 'name="email_address"' in resp.text
+        assert 'action="/resetpassword/reset_request"' in resp.text
+
+
+class TestResetpasswordControllerWithoutForm(ResetpasswordControllerWithoutFormsTests):
+    @classmethod
+    def setupClass(cls):
+        cls.app_config = configure_app('sqlalchemy', create_form=False)

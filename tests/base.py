@@ -138,7 +138,7 @@ resetpassword_form = forms.ResetPasswordForm()
 newpassword_form = forms.NewPasswordForm()
 
 
-def configure_app(using):
+def configure_app(using, create_form=True):
     # Simulate starting configuration process from scratch
     milestones._reset_all()
 
@@ -183,8 +183,8 @@ def configure_app(using):
         app_cfg,
         'resetpassword',
         plug_bootstrap=False,
-        reset_password_form_instance=resetpassword_form,
-        new_password_form_instance=newpassword_form,
+        reset_password_form_instance=resetpassword_form if create_form else None,
+        new_password_form_instance=newpassword_form if create_form else None,
     )
     
     return app_cfg
