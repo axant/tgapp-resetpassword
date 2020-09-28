@@ -78,6 +78,7 @@ resetpassword makes available a some hooks which will be
 called during some actions to alter the default
 behavior of the appplications:
 
+    * resetpassword.on_begin_reset_request(data)
     * resetpassword.on_request(user, email_data, reset_link)
     * resetpassword.before_render_change_password_template(user, deserialized_data)
     * resetpassword.before_redirect(redirect_url)

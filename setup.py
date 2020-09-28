@@ -38,7 +38,7 @@ except IOError:
 
 setup(
     name='tgapp-resetpassword',
-    version='0.2.5',
+    version='0.2.6',
     description='Pluggable application for TurboGears2 that permits to change user password or reset it when lost, with sqla and ming compatibility',
     long_description=README,
     author='Simone Gasbarroni',
