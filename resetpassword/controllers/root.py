@@ -23,7 +23,7 @@ class RootController(TGController):
     def reset_request(self, **kw):
         user = model.provider.query(app_model.User, filters=dict(email_address=kw['email_address']))[1][0]
 
-        on_begin_reset_request_args = {'user': user}
+        on_begin_reset_request_args = {'user': user, 'redirect_to': None}
         on_begin_reset_request = tg.hooks.notify_with_value('resetpassword.on_begin_reset_request', on_begin_reset_request_args)
         
         password_reset_link = tg.url(self.mount_point + "/change_password/", params=dict(data=generate_token(user, on_begin_reset_request['redirect_to'])),
